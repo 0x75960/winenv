@@ -2,82 +2,59 @@
 package winenv
 
 import (
-	"fmt"
-	"log"
 	"os"
 
 	"golang.org/x/sys/windows/registry"
 )
 
-// GetWindowsVersion from registry
-func GetWindowsVersion() (product, version, release, build, servicepack string, err error) {
+// WindowsEnvInfo to get
+type WindowsEnvInfo struct {
+	Product      string `json:"product"`
+	Version      string `json:"version"`
+	Release      string `json:"release"`
+	Build        string `json:"build"`
+	ServicePack  string `json:"service_pack"`
+	Architecture string `json:"architecture"`
+}
+
+// NewWindowsEnvInfo from Environment variable and Registry
+func NewWindowsEnvInfo() (envinfo WindowsEnvInfo, err error) {
 
 	k, err := registry.OpenKey(
 		registry.LOCAL_MACHINE,
 		`SOFTWARE\Microsoft\Windows NT\CurrentVersion`,
 		registry.QUERY_VALUE,
 	)
-
 	if err != nil {
-		return product, version, release, build, servicepack, err
+		return WindowsEnvInfo{}, err
 	}
 	defer k.Close()
 
-	succeeded := false
-
-	// もしかしたら将来的になくなるかもしれないキーなので、基本的にはエラーにしない
-	product, _, err = k.GetStringValue("ProductName")
-	if err == nil {
-		succeeded = true
-	} else {
-		log.Println("failed to get Product", err)
+	// keys must be exists
+	version, _, err := k.GetStringValue("CurrentVersion")
+	if err != nil {
+		return WindowsEnvInfo{}, err
 	}
 
-	version, _, err = k.GetStringValue("CurrentVersion")
-	if err == nil {
-		succeeded = true
-	} else {
-		log.Println("failed to get CurrentVersion", err)
+	product, _, err := k.GetStringValue("ProductName")
+	if err != nil {
+		return WindowsEnvInfo{}, err
 	}
 
-	release, _, err = k.GetStringValue("ReleaseId")
-	if err == nil {
-		succeeded = true
-	} else {
-		log.Println("failed to get ReleaseId", err)
-	}
+	// keys maybe not exisits
+	release, _, _ := k.GetStringValue("ReleaseId")
+	build, _, _ := k.GetStringValue("CurrentBuildNumber")
+	servicepack, _, _ := k.GetStringValue("CSDVersion")
 
-	build, _, err = k.GetStringValue("CurrentBuildNumber")
-	if err == nil {
-		succeeded = true
-	} else {
-		log.Println("failed to get CurrentBuildNumer", err)
-	}
-
-	servicepack, _, err = k.GetStringValue("CSDVersion")
-	if err == nil {
-		succeeded = true
-	} else {
-		log.Println("failed to get CSDVersion", err)
-	}
-
-	if !succeeded {
-		// すべて取得失敗した場合のみ、エラーとする
-		return "", "", "", "", "", fmt.Errorf("failed to get environment informations")
-	}
-
-	return product, version, release, build, servicepack, nil
-}
-
-// GetWindowsArchitecture from environment variable
-func GetWindowsArchitecture() (s string) {
+	// Get from environment variable
 	arch := os.Getenv("Processor_Architecture")
-	switch arch {
-	case "x86":
-		return "x86"
-	case "AMD64":
-		return "x64"
-	default:
-		return arch
-	}
+
+	return WindowsEnvInfo{
+		Version:      version,
+		Product:      product,
+		Release:      release,
+		Build:        build,
+		ServicePack:  servicepack,
+		Architecture: arch,
+	}, nil
 }
