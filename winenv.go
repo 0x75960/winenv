@@ -2,7 +2,9 @@
 package winenv
 
 import (
+	"fmt"
 	"os"
+	"strings"
 
 	"golang.org/x/sys/windows/registry"
 )
@@ -30,20 +32,24 @@ func NewWindowsEnvInfo() (envinfo WindowsEnvInfo, err error) {
 	}
 	defer k.Close()
 
+	product, _, err := k.GetStringValue("ProductName")
+	if err != nil {
+		return WindowsEnvInfo{}, err
+	}
+
 	// keys must be exists
 	version, _, err := k.GetStringValue("CurrentVersion")
 	if err != nil {
 		return WindowsEnvInfo{}, err
 	}
 
-	product, _, err := k.GetStringValue("ProductName")
+	build, _, err := k.GetStringValue("CurrentBuildNumber")
 	if err != nil {
 		return WindowsEnvInfo{}, err
 	}
 
 	// keys maybe not exisits
 	release, _, _ := k.GetStringValue("ReleaseId")
-	build, _, _ := k.GetStringValue("CurrentBuildNumber")
 	servicepack, _, _ := k.GetStringValue("CSDVersion")
 
 	// Get from environment variable
@@ -57,4 +63,23 @@ func NewWindowsEnvInfo() (envinfo WindowsEnvInfo, err error) {
 		ServicePack:  servicepack,
 		Architecture: arch,
 	}, nil
+}
+
+// String for WindowsEnvInfo
+func (e WindowsEnvInfo) String() (str string) {
+
+	str = e.Product
+
+	if e.ServicePack != "" {
+		sp := strings.Replace(e.ServicePack, "Service Pack ", "SP", 1)
+		str = fmt.Sprintf("%s %s", str, sp)
+	}
+
+	str = fmt.Sprintf("%s (%s) [ver. %s] [build %s]", str, e.Architecture, e.Version, e.Build)
+
+	if e.Release != "" {
+		str = fmt.Sprintf("%s [release %s]", str, e.Release)
+	}
+
+	return
 }
