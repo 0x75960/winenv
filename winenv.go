@@ -25,7 +25,7 @@ func NewWindowsEnvInfo() (envinfo WindowsEnvInfo, err error) {
 	k, err := registry.OpenKey(
 		registry.LOCAL_MACHINE,
 		`SOFTWARE\Microsoft\Windows NT\CurrentVersion`,
-		registry.QUERY_VALUE,
+		registry.QUERY_VALUE|registry.WOW64_64KEY,
 	)
 	if err != nil {
 		return WindowsEnvInfo{}, err
