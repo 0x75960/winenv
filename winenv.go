@@ -3,7 +3,6 @@ package winenv
 
 import (
 	"fmt"
-	"os"
 	"strings"
 
 	"golang.org/x/sys/windows/registry"
@@ -48,12 +47,27 @@ func NewWindowsEnvInfo() (envinfo WindowsEnvInfo, err error) {
 		return WindowsEnvInfo{}, err
 	}
 
+	var arch string
+
+	buildLabEx, _, err := k.GetStringValue("BuildLabEx")
+	if err != nil {
+		return WindowsEnvInfo{}, err
+	}
+	switch {
+	case strings.Contains(buildLabEx, "amd64"):
+		arch = "amd64"
+	case strings.Contains(buildLabEx, "x86"):
+		arch = "x86"
+	case len(buildLabEx) == 0:
+		arch = "unknown"
+	default:
+		items := strings.Split(buildLabEx, ".")
+		arch = items[2]
+	}
+
 	// keys maybe not exisits
 	release, _, _ := k.GetStringValue("ReleaseId")
 	servicepack, _, _ := k.GetStringValue("CSDVersion")
-
-	// Get from environment variable
-	arch := os.Getenv("Processor_Architecture")
 
 	return WindowsEnvInfo{
 		Version:      version,
