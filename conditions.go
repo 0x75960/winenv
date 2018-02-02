@@ -12,7 +12,6 @@ func (s WindowsEnvInfo) Newer(other WindowsEnvInfo) bool {
 
 // Older than other
 func (s WindowsEnvInfo) Older(other WindowsEnvInfo) bool {
-
 	return s.compareValue() < other.compareValue()
 }
 
